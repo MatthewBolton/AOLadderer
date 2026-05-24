@@ -1,32 +1,163 @@
 ﻿@code {
+  [Inject] public IJSRuntime JsRuntime { get; set; }
     [Parameter] public LadderModel Model { get; set; }
+
+  private bool wasTemporaryCommandsCopied;
+  private bool wasFinalCommandsCopied;
+
+  private void ClearBuilt()
+  {
+    foreach (var step in Model)
+      step.IsBuilt = false;
+  }
+
+  private void ClearEquipped()
+  {
+    foreach (var step in Model)
+      step.IsEquipped = false;
+  }
+
+  private void ClearAll()
+  {
+    foreach (var step in Model)
+    {
+      step.IsBuilt = false;
+      step.IsEquipped = false;
+    }
+  }
+
+  private async Task CopyTemporaryCommands()
+  {
+    wasTemporaryCommandsCopied = await JsRuntime.InvokeAsync<bool>("copyToClipboard", BuildImplantbobCommands(Model.LadderSteps));
+  }
+
+  private async Task CopyFinalCommands()
+  {
+    wasFinalCommandsCopied = await JsRuntime.InvokeAsync<bool>("copyToClipboard", BuildImplantbobCommands(Model.FinalSteps));
+  }
+
+  private async Task CopyStepCommand(LadderModel.StepModel step)
+  {
+    foreach (var otherStep in Model)
+      otherStep.WasCommandCopied = false;
+
+    step.WasCommandCopied = await JsRuntime.InvokeAsync<bool>("copyToClipboard", BuildImplantbobCommand(step));
+  }
+
+  private string BuildImplantbobCommands(IReadOnlyCollection<LadderModel.StepModel> steps)
+    => string.Join("\n", steps.Select(BuildImplantbobCommand));
+
+  private string BuildImplantbobCommand(LadderModel.StepModel step)
+  {
+    var parts = new List<string>
+    {
+      "/tell Implantbob",
+      GetImplantbobSlotAlias(step.ImplantSlot),
+      "ql",
+      step.ImplantQL.ToString()
+    };
+
+    foreach (var stat in new[] { step.ShinyStat, step.BrightStat, step.FadedStat })
+    {
+      if (!string.IsNullOrWhiteSpace(stat))
+        parts.Add(stat);
+    }
+
+    return string.Join(" ", parts);
+  }
+
+  private static string GetImplantbobSlotAlias(string slot)
+    => slot switch
+    {
+      "Right-Arm" => "rarm",
+      "Left-Arm" => "larm",
+      "Right-Wrist" => "rwrist",
+      "Left-Wrist" => "lwrist",
+      "Right-Hand" => "rhand",
+      "Left-Hand" => "lhand",
+      "Feet" => "feet",
+      _ => slot?.ToLowerInvariant() ?? string.Empty
+    };
+
+  private static string GetRowClass(LadderModel.StepModel step)
+    => step.IsEquipped ? "table-success" : step.IsBuilt ? "table-warning" : null;
 }
 
-<table class="table table-striped table-hover">
-  <thead>
-    <tr>
-      <th style="width: 1%;"></th>
-      <th>QL</th>
-      <th>Slot</th>
-      <th>Shiny</th>
-      <th>Bright</th>
-      <th>Faded</th>
-    </tr>
-  </thead>
+<div class="mb-3">
+  <button class="btn btn-sm btn-outline-secondary mr-2" @onclick="ClearBuilt">Uncheck built</button>
+  <button class="btn btn-sm btn-outline-secondary mr-2" @onclick="ClearEquipped">Uncheck equipped</button>
+  <button class="btn btn-sm btn-outline-secondary" @onclick="ClearAll">Uncheck all</button>
+</div>
 
-  <tbody>
-    @foreach (var step in Model)
-    {
-      <tr class="@(step.IsChecked ? "text-secondary" : null)"
-          @onclick="e => step.IsChecked = !step.IsChecked">
-        <td><input type="checkbox" @bind="step.IsChecked" /></td>
-        <td>@step.ImplantQL</td>
-        <td>@step.ImplantSlot</td>
-        <td>@step.ShinyStat</td>
-        <td>@step.BrightStat</td>
-        <td>@step.FadedStat</td>
-      </tr>
-    }
-  </tbody>
-</table>
+<div class="mb-3">
+  @if (Model.LadderSteps.Count > 0)
+  {
+  <button class="btn btn-sm btn-outline-primary mr-2" @onclick="CopyTemporaryCommands">
+    <span class="oi @(wasTemporaryCommandsCopied ? "oi-check" : "oi-clipboard")"></span> Copy Implantbob temporary-stage commands
+  </button>
+  }
+
+  @if (Model.FinalSteps.Count > 0)
+  {
+  <button class="btn btn-sm btn-outline-primary" @onclick="CopyFinalCommands">
+    <span class="oi @(wasFinalCommandsCopied ? "oi-check" : "oi-clipboard")"></span> Copy Implantbob final-stage commands
+  </button>
+  }
+</div>
+
+@foreach (var section in new[]
+{
+    new { Name = "Temporary ladder implants", Steps = Model.LadderSteps, EmptyMessage = "No temporary ladder implants needed." },
+    new { Name = "Final implants", Steps = Model.FinalSteps, EmptyMessage = "No final implants configured yet." }
+})
+{
+  <h6>@(section.Name)</h6>
+
+  if (section.Steps.Count == 0)
+  {
+    <p class="text-muted">@(section.EmptyMessage)</p>
+  }
+  else
+  {
+    <table class="table table-striped table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th style="width: 1%;">Built</th>
+          <th style="width: 1%;">Equipped</th>
+          <th>QL</th>
+          <th>Slot</th>
+          <th>Shiny</th>
+          <th>Bright</th>
+          <th>Faded</th>
+          <th>Tell</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @foreach (var step in section.Steps)
+        {
+          <tr class="@GetRowClass(step)">
+            <td>@step.StepNumber</td>
+            <td><input type="checkbox" @bind="step.IsBuilt" /></td>
+            <td><input type="checkbox" @bind="step.IsEquipped" /></td>
+            <td>@step.ImplantQL</td>
+            <td>@step.ImplantSlot</td>
+            <td>@step.ShinyStat</td>
+            <td>@step.BrightStat</td>
+            <td>@step.FadedStat</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary"
+                      title="@BuildImplantbobCommand(step)"
+                      @onclick="() => CopyStepCommand(step)">
+                <span class="oi @(step.WasCommandCopied ? "oi-check" : "oi-clipboard")"></span>
+                @(step.WasCommandCopied ? "Copied" : "Copy tell")
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}
 

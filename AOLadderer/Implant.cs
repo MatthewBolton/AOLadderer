@@ -72,6 +72,22 @@ namespace AOLadderer
         public static int GetMaxImplantQL(int abilityValue, double treatmentValue)
             => Math.Min(GetMaxImplantQLForAbilityValue(abilityValue), GetMaxImplantQLForTreatmentValue(treatmentValue));
 
+        // Implantbob (the shop bot) only accepts implant QLs in {5, 10, 20, 30, 40} ∪ [50..200].
+        // QLs below 50 must match a discrete shop break; 50–200 accepts any integer.
+        // Returns 0 for inputs below the lowest shop break, mirroring the "no implant possible" semantics
+        // that callers already handle via the QL <= 0 guards in GetDirectContribution etc.
+        public static int ClampToShopBuyableQL(int implantQL)
+        {
+            if (implantQL >= 200) return 200;
+            if (implantQL >= 50) return implantQL;
+            if (implantQL >= 40) return 40;
+            if (implantQL >= 30) return 30;
+            if (implantQL >= 20) return 20;
+            if (implantQL >= 10) return 10;
+            if (implantQL >= 5)  return 5;
+            return 0;
+        }
+
         public override bool Equals(object other)
             => Equals(other as Implant);
 

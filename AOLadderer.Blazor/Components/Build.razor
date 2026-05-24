@@ -1,12 +1,273 @@
 ﻿@code {
     [Parameter] public BuildModel Model { get; set; }
     [Parameter] public Action ModelChanged { get; set; }
+
+  void UpdatePresetProfession(string value)
+  {
+    Model.SetPresetProfession(value);
+    ModelChanged?.Invoke();
+  }
+
+  void UpdatePresetVariant(string value)
+  {
+    Model.PresetId = value;
+    ModelChanged?.Invoke();
+  }
+
+  void ApplySelectedPreset()
+  {
+    Model.ApplySelectedPreset();
+    ModelChanged?.Invoke();
+  }
+
+  void ClearAppliedPresetClusters()
+  {
+    Model.ClearAppliedPresetClusters();
+    ModelChanged?.Invoke();
+  }
+
+  void UpdateTargetSelection(int priority, string value)
+  {
+    switch (priority)
+    {
+      case 1:
+        Model.AutofillTarget1 = value;
+        break;
+      case 2:
+        Model.AutofillTarget2 = value;
+        break;
+      default:
+        Model.AutofillTarget3 = value;
+        break;
+    }
+
+    ModelChanged?.Invoke();
+  }
+
+  void UpdateTargetCurrent(int priority, string value)
+  {
+    double parsedValue = double.TryParse(value, out double result) ? result : 0;
+
+    switch (priority)
+    {
+      case 1:
+        Model.AutofillTarget1Current = parsedValue;
+        break;
+      case 2:
+        Model.AutofillTarget2Current = parsedValue;
+        break;
+      default:
+        Model.AutofillTarget3Current = parsedValue;
+        break;
+    }
+
+    ModelChanged?.Invoke();
+  }
+
+  void UpdateTargetGoal(int priority, string value)
+  {
+    double parsedValue = double.TryParse(value, out double result) ? result : 0;
+
+    switch (priority)
+    {
+      case 1:
+        Model.AutofillTarget1Goal = parsedValue;
+        break;
+      case 2:
+        Model.AutofillTarget2Goal = parsedValue;
+        break;
+      default:
+        Model.AutofillTarget3Goal = parsedValue;
+        break;
+    }
+
+    ModelChanged?.Invoke();
+  }
+
+  string FormatValue(double value)
+    => value == Math.Truncate(value) ? value.ToString("0") : value.ToString("0.##");
+
+    void ApplyAutofill()
+    {
+        Model.ApplyAutofill();
+        ModelChanged?.Invoke();
+    }
+
+    void OptimizeForGoals()
+    {
+      Model.OptimizeForGoals();
+      ModelChanged?.Invoke();
+    }
+
+    void ResetAutofillClusters()
+    {
+        Model.ResetAutofillClusters();
+        ModelChanged?.Invoke();
+    }
 }
 
-<h5>Implants</h5>
+<h5>Profession Implant Preset</h5>
 <hr class="border-secondary" style="margin-top: 0;" />
 
-<Implants Model="Model.Implants" ModelChanged="ModelChanged"></Implants>
+<div class="card bg-light mb-3">
+  <div class="card-body py-3">
+    <p class="text-muted mb-3">
+      Apply a pre-defined, store-buyable implant set for your profession. Each preset covers all 13 slots with
+      clusters you can order directly from Implantbob. Select a profession and archetype, apply the preset,
+      then tweak any slot manually — preset values are not locked.
+    </p>
+
+    <div class="form-row align-items-end">
+      <div class="col-md-4 mb-2">
+        <label class="mb-1" for="preset-profession">Profession</label>
+        <select id="preset-profession" class="form-control"
+                @onchange="e => UpdatePresetProfession(e.Value?.ToString() ?? string.Empty)">
+          @foreach (string profession in Model.PresetProfessionOptions)
+          {
+            <option value="@profession" selected="@(profession.Equals(Model.PresetProfession))">@profession</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-5 mb-2">
+        <label class="mb-1" for="preset-variant">Variant / Archetype</label>
+        <select id="preset-variant" class="form-control" disabled="@(Model.PresetOptionsForSelectedProfession.Count == 0)"
+                @onchange="e => UpdatePresetVariant(e.Value?.ToString() ?? string.Empty)">
+          @foreach (AoNormalizedPreset preset in Model.PresetOptionsForSelectedProfession)
+          {
+            <option value="@preset.Id" selected="@(preset.Id.Equals(Model.PresetId))">@preset.Variant</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-3 mb-2">
+        <button type="button" class="btn btn-primary mr-2" disabled="@(!Model.HasSelectedPreset)" @onclick="ApplySelectedPreset">
+          Apply Preset
+        </button>
+        <button type="button" class="btn btn-link text-secondary p-0" disabled="@(!Model.HasAppliedPresetClusters)" @onclick="ClearAppliedPresetClusters">
+          Clear preset clusters
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h5>Autofill</h5>
+<hr class="border-secondary" style="margin-top: 0;" />
+
+<div class="card bg-light mb-3">
+  <div class="card-body py-3">
+    <p class="text-muted mb-3">
+      Pick up to three target stats or skills, enter your current and goal values, then autofill available implant slots using currently selected targets.
+      The projection below stays explicitly implant-driven from your current implant selections and includes both direct cluster bonuses and ability-based trickledown from directly equippable implant QLs.
+    </p>
+
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th style="width: 1%; white-space: nowrap;">Priority</th>
+            <th>Target skill / stat</th>
+            <th style="width: 20%;">Current</th>
+            <th style="width: 20%;">Goal</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (BuildModel.TargetStatModel target in Model.TargetStats)
+          {
+            <tr>
+              <th class="align-middle text-nowrap">Priority @target.Priority</th>
+              <td>
+                <select id="@($"autofill-target-{target.Priority}")" class="form-control"
+                        @onchange="e => UpdateTargetSelection(target.Priority, e.Value?.ToString() ?? string.Empty)">
+                  <option></option>
+                  @foreach (string option in Model.AutofillTargetOptions)
+                  {
+                    <option value="@option" selected="@(option.Equals(target.Target))">@option</option>
+                  }
+                </select>
+              </td>
+              <td>
+                <input class="form-control" type="number" step="0.1" value="@FormatValue(target.CurrentValue)"
+                       @onchange="e => UpdateTargetCurrent(target.Priority, e.Value?.ToString() ?? string.Empty)" />
+              </td>
+              <td>
+                <input class="form-control" type="number" step="0.1" value="@FormatValue(target.GoalValue)"
+                       @onchange="e => UpdateTargetGoal(target.Priority, e.Value?.ToString() ?? string.Empty)" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-3">
+      <button type="button" class="btn btn-secondary mr-2" disabled="@(!Model.HasAutofillTargets)" @onclick="ApplyAutofill">
+        Autofill Clusters
+      </button>
+      <button type="button" class="btn btn-primary mr-2" disabled="@(!Model.HasOptimizationGoals)" @onclick="OptimizeForGoals">
+        Optimize for goals
+      </button>
+      <button type="button" class="btn btn-link text-secondary p-0" @onclick="ResetAutofillClusters">
+        Clear Clusters
+      </button>
+    </div>
+  </div>
+</div>
+
+<h5>Target Projection</h5>
+<hr class="border-secondary" style="margin-top: 0;" />
+
+<div class="card bg-light mb-3">
+  <div class="card-body py-3">
+    @if (Model.TargetProjections.Count == 0)
+    {
+      <p class="text-muted mb-0">Select at least one target stat or skill to see implant-only projection against your current and goal values.</p>
+    }
+    else
+    {
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Priority</th>
+              <th>Target</th>
+              <th class="text-right">Current</th>
+              <th class="text-right">Direct gain</th>
+              <th class="text-right">Trickledown gain</th>
+              <th class="text-right">Total implant gain</th>
+              <th class="text-right">Projected total</th>
+              <th class="text-right">Goal</th>
+              <th class="text-right">Deficit</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (BuildModel.TargetProjectionModel projection in Model.TargetProjections)
+            {
+              <tr>
+                <td>Priority @projection.Priority</td>
+                <td>@projection.Target</td>
+                <td class="text-right">@FormatValue(projection.CurrentValue)</td>
+                <td class="text-right">+@FormatValue(projection.DirectGain)</td>
+                <td class="text-right">+@FormatValue(projection.TrickledownGain)</td>
+                <td class="text-right">+@FormatValue(projection.TotalImplantDrivenGain)</td>
+                <td class="text-right">@FormatValue(projection.ProjectedTotal)</td>
+                <td class="text-right">@FormatValue(projection.GoalValue)</td>
+                <td class="text-right @(projection.DeficitToGoal > 0 ? "text-danger font-weight-bold" : "text-success font-weight-bold")">
+                  @FormatValue(projection.DeficitToGoal)
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-muted mb-0 mt-3">
+        Projection uses the currently selected implants only. It does not yet search for better layouts, recurse through newly enabled implant QLs, or estimate non-implant sources.
+      </p>
+    }
+  </div>
+</div>
 
 <div class="row">
   <div class="col-md-8">
@@ -23,3 +284,29 @@
     <Buffs Model="Model.Buffs" ModelChanged="() => Model.Stats.Apply(Model.Buffs)"></Buffs>
   </div>
 </div>
+
+<h5>Laddering</h5>
+<hr class="border-secondary" style="margin-top: 0;" />
+
+<div class="form-check">
+  <input class="form-check-input" type="radio" name="ladder-mode" id="ladder-mode-basic"
+         checked="@(Model.LadderMode == LadderMode.Basic)" @onchange="e => { Model.LadderMode = LadderMode.Basic; ModelChanged?.Invoke(); }" />
+  <label class="form-check-label" for="ladder-mode-basic">Basic</label>
+</div>
+
+<div class="form-check">
+  <input class="form-check-input" type="radio" name="ladder-mode" id="ladder-mode-advanced"
+         checked="@(Model.LadderMode == LadderMode.Advanced)" @onchange="e => { Model.LadderMode = LadderMode.Advanced; ModelChanged?.Invoke(); }" />
+  <label class="form-check-label" for="ladder-mode-advanced">Advanced</label>
+</div>
+
+<div class="form-check mb-3" title="Restrict implant QLs to Implantbob-shop-buyable values: 5, 10, 20, 30, 40, or any integer 50–200. Slight stat give-up below QL 50 in exchange for tells that the shop bot will accept.">
+  <input class="form-check-input" type="checkbox" id="shop-buyable-ql-mode"
+         checked="@Model.ShopBuyableQLMode" @onchange="e => { Model.ShopBuyableQLMode = (bool)e.Value; ModelChanged?.Invoke(); }" />
+  <label class="form-check-label" for="shop-buyable-ql-mode">Shop-buyable QLs only (Implantbob)</label>
+</div>
+
+<h5>Implants</h5>
+<hr class="border-secondary" style="margin-top: 0;" />
+
+<Implants Model="Model.Implants" ModelChanged="ModelChanged"></Implants>

@@ -1,6 +1,7 @@
 ﻿using AOLadderer.Stats;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace AOLadderer
 {
@@ -43,5 +44,19 @@ namespace AOLadderer
                 .Cast<Stat>()
                 .Prepend(Skill.Treatment)
                 .ToArray());
+
+        private static IReadOnlyDictionary<string, Stat> _statsByName;
+        public static bool TryGetStat(string name, out Stat stat)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                stat = null;
+                return false;
+            }
+
+            return (_statsByName ?? (_statsByName = Stats
+                .ToDictionary(s => s.Name, StringComparer.Ordinal)))
+                .TryGetValue(name, out stat);
+        }
     }
 }

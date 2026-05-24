@@ -2,38 +2,50 @@
     [Parameter] public ShoppingModel Model { get; set; }
 }
 
-<div class="row">
-  @foreach (var clusterType in new[]
-  {
-    new { name = "Shiny", clusters = Model.ShinyClusters },
-    new { name = "Bright", clusters = Model.BrightClusters },
-    new { name = "Faded", clusters = Model.FadedClusters }
-  })
-  {
-    <div class="col-md-4">
-      <h5>@clusterType.name</h5>
+@foreach (var stage in new[] { Model.LadderStage, Model.FinalStage })
+{
+  <h6>@(stage.Name)</h6>
 
-      <table class="table table-striped table-hover">
-        <thead>
-          <tr>
-            <th style="width: 1%;"></th>
-            <th>Min QL</th>
-            <th>Stat</th>
-          </tr>
-        </thead>
+  if (!stage.HasAnyClusters)
+  {
+    <p class="text-muted">No clusters needed for this stage.</p>
+  }
+  else
+  {
+    <div class="row">
+      @foreach (var clusterType in new[]
+      {
+        new { Name = "Shiny", Clusters = stage.ShinyClusters },
+        new { Name = "Bright", Clusters = stage.BrightClusters },
+        new { Name = "Faded", Clusters = stage.FadedClusters }
+      })
+      {
+        <div class="col-md-4">
+          <h5>@clusterType.Name</h5>
 
-        <tbody>
-          @foreach (var cluster in clusterType.clusters)
-          {
-            <tr class="@(cluster.IsChecked ? "text-secondary" : null)"
-                @onclick="e => cluster.IsChecked = !cluster.IsChecked">
-              <td><input type="checkbox" @bind="cluster.IsChecked" /></td>
-              <td>@cluster.MinimumQL</td>
-              <td>@cluster.Stat</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+          <table class="table table-striped table-hover">
+            <thead>
+              <tr>
+                <th style="width: 1%;"></th>
+                <th>Min QL</th>
+                <th>Stat</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @foreach (var cluster in clusterType.Clusters)
+              {
+                <tr class="@(cluster.IsChecked ? "text-secondary" : null)"
+                    @onclick="e => cluster.IsChecked = !cluster.IsChecked">
+                  <td><input type="checkbox" @bind="cluster.IsChecked" /></td>
+                  <td>@cluster.MinimumQL</td>
+                  <td>@cluster.Stat</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </div>
   }
-</div>
+}

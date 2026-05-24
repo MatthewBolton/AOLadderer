@@ -5,6 +5,35 @@ namespace AOLadderer.Blazor.Models
 {
     public class ShoppingModel
     {
+        public class StageModel
+        {
+            public StageModel(string name, IEnumerable<Implant> implants)
+            {
+                Name = name;
+                ShinyClusters = implants
+                    .Where(i => i.ShinyClusterTemplate != null)
+                    .Select(i => new ClusterModel(i.MinimumShinyClusterQL.Value, i.ShinyStat))
+                    .OrderBy(c => c.Stat).ThenBy(c => c.MinimumQL)
+                    .ToArray();
+                BrightClusters = implants
+                    .Where(i => i.BrightClusterTemplate != null)
+                    .Select(i => new ClusterModel(i.MinimumBrightClusterQL.Value, i.BrightStat))
+                    .OrderBy(c => c.Stat).ThenBy(c => c.MinimumQL)
+                    .ToArray();
+                FadedClusters = implants
+                    .Where(i => i.FadedClusterTemplate != null)
+                    .Select(i => new ClusterModel(i.MinimumFadedClusterQL.Value, i.FadedStat))
+                    .OrderBy(c => c.Stat).ThenBy(c => c.MinimumQL)
+                    .ToArray();
+            }
+
+            public string Name { get; }
+            public IReadOnlyCollection<ClusterModel> ShinyClusters { get; }
+            public IReadOnlyCollection<ClusterModel> BrightClusters { get; }
+            public IReadOnlyCollection<ClusterModel> FadedClusters { get; }
+            public bool HasAnyClusters => ShinyClusters.Any() || BrightClusters.Any() || FadedClusters.Any();
+        }
+
         public class ClusterModel
         {
             public ClusterModel(int minimumQL, Stat stat)
@@ -20,28 +49,11 @@ namespace AOLadderer.Blazor.Models
 
         public ShoppingModel(LadderProcess ladder)
         {
-            ShinyClusters = ladder.OrderedLadderImplants
-                .Concat(ladder.OrderedFinalImplants)
-                .Where(i => i.ShinyClusterTemplate != null)
-                .Select(i => new ClusterModel(i.MinimumShinyClusterQL.Value, i.ShinyStat))
-                .OrderBy(c => c.Stat).ThenBy(c => c.MinimumQL)
-                .ToArray();
-            BrightClusters = ladder.OrderedLadderImplants
-                .Concat(ladder.OrderedFinalImplants)
-                .Where(i => i.BrightClusterTemplate != null)
-                .Select(i => new ClusterModel(i.MinimumBrightClusterQL.Value, i.BrightStat))
-                .OrderBy(c => c.Stat).ThenBy(c => c.MinimumQL)
-                .ToArray();
-            FadedClusters = ladder.OrderedLadderImplants
-                .Concat(ladder.OrderedFinalImplants)
-                .Where(i => i.FadedClusterTemplate != null)
-                .Select(i => new ClusterModel(i.MinimumFadedClusterQL.Value, i.FadedStat))
-                .OrderBy(c => c.Stat).ThenBy(c => c.MinimumQL)
-                .ToArray();
+            LadderStage = new StageModel("Temporary ladder implants", ladder.OrderedLadderImplants);
+            FinalStage = new StageModel("Final implants", ladder.OrderedFinalImplants);
         }
 
-        public IReadOnlyCollection<ClusterModel> ShinyClusters { get; }
-        public IReadOnlyCollection<ClusterModel> BrightClusters { get; }
-        public IReadOnlyCollection<ClusterModel> FadedClusters { get; }
+        public StageModel LadderStage { get; }
+        public StageModel FinalStage { get; }
     }
 }

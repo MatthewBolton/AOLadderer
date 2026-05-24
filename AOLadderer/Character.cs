@@ -31,7 +31,13 @@ namespace AOLadderer
         {
             _ladderStatValues = new LadderStatValues(character._ladderStatValues);
             _implantConfiguration = new ImplantConfiguration(character._implantConfiguration);
+            ShopBuyableQLMode = character.ShopBuyableQLMode;
         }
+
+        // When true, every implant QL chosen by GetMaxImplant / EquipMaxImplant is rounded down to the
+        // nearest Implantbob-shop-buyable QL ({5,10,20,30,40} ∪ [50..200]). The ladder processes copy this
+        // flag via the Character copy constructor, so all derived working characters inherit it.
+        public bool ShopBuyableQLMode { get; set; }
 
         public int GetAbilityValue(Ability ability)
             => _ladderStatValues.GetAbilityValue(ability);
@@ -135,8 +141,7 @@ namespace AOLadderer
         {
             var currentImplant = isSlotKnownToBeEmpty ? null : UnequipImplant(implantTemplate.ImplantSlot);
 
-            var maxImplant = new Implant(
-                implantTemplate, Implant.GetMaxImplantQL(GetAbilityValue(implantTemplate.RequiredAbility), TreatmentValue));
+            var maxImplant = new Implant(implantTemplate, GetMaxImplantQL(implantTemplate));
 
             if (currentImplant != null)
             {
@@ -153,11 +158,16 @@ namespace AOLadderer
                 UnequipImplant(implantTemplate.ImplantSlot);
             }
 
-            var maxImplant = new Implant(
-                implantTemplate, Implant.GetMaxImplantQL(GetAbilityValue(implantTemplate.RequiredAbility), TreatmentValue));
+            var maxImplant = new Implant(implantTemplate, GetMaxImplantQL(implantTemplate));
             SetImplant(maxImplant, isSlotKnownToBeEmpty: true);
 
             return maxImplant;
+        }
+
+        private int GetMaxImplantQL(ImplantTemplate implantTemplate)
+        {
+            int ql = Implant.GetMaxImplantQL(GetAbilityValue(implantTemplate.RequiredAbility), TreatmentValue);
+            return ShopBuyableQLMode ? Implant.ClampToShopBuyableQL(ql) : ql;
         }
 
         public bool IsImplantSlotFull(ImplantSlot implantSlot)
