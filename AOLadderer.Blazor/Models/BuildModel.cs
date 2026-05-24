@@ -100,23 +100,33 @@ namespace AOLadderer.Blazor.Models
             new TargetStatModel { Priority = 2, Target = AutofillTarget2, CurrentValue = AutofillTarget2Current, GoalValue = AutofillTarget2Goal },
             new TargetStatModel { Priority = 3, Target = AutofillTarget3, CurrentValue = AutofillTarget3Current, GoalValue = AutofillTarget3Goal }
         };
-        public IReadOnlyList<TargetProjectionModel> TargetProjections => TargetStats
-            .Where(t => t.HasTarget)
-            .Select(t =>
+        public IReadOnlyList<TargetProjectionModel> TargetProjections
+        {
+            get
             {
-                (double directGain, double trickledownGain) = GetImplantContribution(t.Target);
+                var activeTargets = TargetStats.Where(t => t.HasTarget).ToList();
+                if (activeTargets.Count == 0) return System.Array.Empty<TargetProjectionModel>();
 
-                return new TargetProjectionModel
+                // Run the ladder once and index final implant QLs by slot so every
+                // target projection uses the post-ladder QL, not the bare base-stat QL.
+                var finalQLBySlot = CreateLadderProcess().OrderedFinalImplants
+                    .ToDictionary(i => i.ImplantSlot, i => i.QL);
+
+                return activeTargets.Select(t =>
                 {
-                    Priority = t.Priority,
-                    Target = t.Target,
-                    CurrentValue = t.CurrentValue,
-                    GoalValue = t.GoalValue,
-                    DirectGain = directGain,
-                    TrickledownGain = trickledownGain
-                };
-            })
-            .ToArray();
+                    (double directGain, double trickledownGain) = GetImplantContribution(t.Target, finalQLBySlot);
+                    return new TargetProjectionModel
+                    {
+                        Priority = t.Priority,
+                        Target = t.Target,
+                        CurrentValue = t.CurrentValue,
+                        GoalValue = t.GoalValue,
+                        DirectGain = directGain,
+                        TrickledownGain = trickledownGain
+                    };
+                }).ToArray();
+            }
+        }
 
         public LadderProcess CreateLadderProcess()
         {
@@ -540,7 +550,7 @@ namespace AOLadderer.Blazor.Models
         private double EvaluateWeightedGoalDeficit(IEnumerable<TargetStatModel> optimizationTargets)
             => optimizationTargets.Sum(target =>
             {
-                (double directGain, double trickledownGain) = GetImplantContribution(target.Target);
+                (double directGain, double trickledownGain) = GetBaseStatImplantContribution(target.Target);
                 double projectedValue = target.CurrentValue + directGain + trickledownGain;
                 double deficit = Math.Max(0, target.GoalValue - projectedValue);
                 double priorityWeight = TargetPriorityWeights.TryGetValue(target.Priority, out double weight)
@@ -550,7 +560,8 @@ namespace AOLadderer.Blazor.Models
                 return priorityWeight * deficit;
             });
 
-        private (double DirectGain, double TrickledownGain) GetImplantContribution(string target)
+        // Used by the optimizer, which scores many candidate configs — no ladder run per call.
+        private (double DirectGain, double TrickledownGain) GetBaseStatImplantContribution(string target)
         {
             if (string.IsNullOrWhiteSpace(target)) return (0, 0);
 
@@ -559,19 +570,42 @@ namespace AOLadderer.Blazor.Models
 
             foreach (var implantSelection in Implants
                 .Where(i => !i.IsUnavailable)
-                .Select(i => new
-                {
-                    Implant = i,
-                    Template = i.CreateImplantTemplate()
-                })
+                .Select(i => new { Implant = i, Template = i.CreateImplantTemplate() })
                 .Where(x => x.Template != null))
             {
                 int implantQl = Implant.GetMaxImplantQL(
                     GetAbilityValue(implantSelection.Template.RequiredAbility),
                     Stats.Treatment);
                 if (ShopBuyableQLMode)
-                {
                     implantQl = Implant.ClampToShopBuyableQL(implantQl);
+                directGain += implantSelection.Implant.GetDirectContribution(target, implantQl);
+                trickledownGain += implantSelection.Implant.GetTrickledownContribution(target, implantQl);
+            }
+
+            return (directGain, trickledownGain);
+        }
+
+        private (double DirectGain, double TrickledownGain) GetImplantContribution(
+            string target, IReadOnlyDictionary<ImplantSlot, int> finalQLBySlot)
+        {
+            if (string.IsNullOrWhiteSpace(target)) return (0, 0);
+
+            double directGain = 0;
+            double trickledownGain = 0;
+
+            foreach (var implantSelection in Implants
+                .Where(i => !i.IsUnavailable)
+                .Select(i => new { Implant = i, Template = i.CreateImplantTemplate() })
+                .Where(x => x.Template != null))
+            {
+                int implantQl;
+                if (!finalQLBySlot.TryGetValue(implantSelection.Template.ImplantSlot, out implantQl))
+                {
+                    implantQl = Implant.GetMaxImplantQL(
+                        GetAbilityValue(implantSelection.Template.RequiredAbility),
+                        Stats.Treatment);
+                    if (ShopBuyableQLMode)
+                        implantQl = Implant.ClampToShopBuyableQL(implantQl);
                 }
                 directGain += implantSelection.Implant.GetDirectContribution(target, implantQl);
                 trickledownGain += implantSelection.Implant.GetTrickledownContribution(target, implantQl);
