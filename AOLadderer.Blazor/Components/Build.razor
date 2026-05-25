@@ -93,10 +93,25 @@
         ModelChanged?.Invoke();
     }
 
-    void OptimizeForGoals()
+    bool isOptimizing;
+
+    async Task OptimizeForGoals()
     {
-      Model.OptimizeForGoals();
-      ModelChanged?.Invoke();
+      if (isOptimizing) return;
+      isOptimizing = true;
+      // Force a render of the "Optimizing..." state before kicking off the work,
+      // then yield so the browser actually paints it before the main thread blocks.
+      StateHasChanged();
+      await Task.Yield();
+      try
+      {
+        await Model.OptimizeForGoalsAsync();
+      }
+      finally
+      {
+        isOptimizing = false;
+        ModelChanged?.Invoke();
+      }
     }
 
     void ResetAutofillClusters()
@@ -201,13 +216,21 @@
     </div>
 
     <div class="mt-3">
-      <button type="button" class="btn btn-secondary mr-2" disabled="@(!Model.HasAutofillTargets)" @onclick="ApplyAutofill">
+      <button type="button" class="btn btn-secondary mr-2" disabled="@(isOptimizing || !Model.HasAutofillTargets)" @onclick="ApplyAutofill">
         Autofill Clusters
       </button>
-      <button type="button" class="btn btn-primary mr-2" disabled="@(!Model.HasOptimizationGoals)" @onclick="OptimizeForGoals">
-        Optimize for goals
+      <button type="button" class="btn btn-primary mr-2" disabled="@(isOptimizing || !Model.HasOptimizationGoals)" @onclick="OptimizeForGoals">
+        @if (isOptimizing)
+        {
+          <span class="ao-spinner mr-2"></span>
+          <text>Optimizing&hellip;</text>
+        }
+        else
+        {
+          <text>Optimize for goals</text>
+        }
       </button>
-      <button type="button" class="btn btn-link text-secondary p-0" @onclick="ResetAutofillClusters">
+      <button type="button" class="btn btn-link text-secondary p-0" disabled="@isOptimizing" @onclick="ResetAutofillClusters">
         Clear Clusters
       </button>
     </div>

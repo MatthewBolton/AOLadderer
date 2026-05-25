@@ -29,6 +29,10 @@ namespace AOLadderer.Blazor
             Debug.WriteLine("Building ladder process...");
             // Browsers are single-threaded so this will actually still block the UI.
             // See: https://github.com/aspnet/Blazor/issues/560
+            // Yield a couple of times so the loading placeholder paints before the main
+            // thread blocks on the synchronous ladder computation.
+            await Task.Yield();
+            await Task.Delay(1);
             LadderProcess ladder = await Task.Run(() => Build.CreateLadderProcess());
 
             Debug.WriteLine("Ladder process built.");

@@ -8,7 +8,7 @@
 
 @if (appState.Ladder == null)
 {
-  <LoadingPlaceholder></LoadingPlaceholder>
+  <LoadingPlaceholder LadderMode="@appState.Build.LadderMode.ToString()"></LoadingPlaceholder>
 }
 else if (appState.Ladder.Count == 0)
 {

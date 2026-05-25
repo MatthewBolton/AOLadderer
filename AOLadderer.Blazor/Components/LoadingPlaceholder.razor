@@ -1,6 +1,12 @@
-﻿<div class="jumbotron text-center">
-  <h5 class="display-4">
-    Loading<span class="animate--pulse-1">.</span><span class="animate--pulse-2">.</span><span class="animate--pulse-3">.</span>
-  </h5>
-  <p class="lead">Sorry, this could take a few minutes.</p>
+<div class="ao-loading text-center py-5">
+  <div class="ao-spinner ao-spinner-lg mb-3"></div>
+  <h5 class="ao-loading-title">Laddering implants&hellip;</h5>
+  <p class="text-muted mb-0">
+    Running the @(LadderMode ?? "ladder") search. This can take up to a minute on complex builds.
+    Your browser may briefly say the page is unresponsive — that's normal; the computation is single-threaded.
+  </p>
 </div>
+
+@code {
+  [Parameter] public string LadderMode { get; set; }
+}

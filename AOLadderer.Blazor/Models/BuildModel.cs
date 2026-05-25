@@ -3,6 +3,7 @@ using AOLadderer.LadderProcesses;
 using AOLadderer.Stats;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace AOLadderer.Blazor.Models
 {
@@ -182,7 +183,11 @@ namespace AOLadderer.Blazor.Models
         public void ClearAppliedPresetClusters()
             => Implants.ClearAppliedPresetClusters();
 
-        public void OptimizeForGoals()
+        public void OptimizeForGoals() => OptimizeForGoalsCore(yieldBetweenSeeds: false).GetAwaiter().GetResult();
+
+        public Task OptimizeForGoalsAsync() => OptimizeForGoalsCore(yieldBetweenSeeds: true);
+
+        private async Task OptimizeForGoalsCore(bool yieldBetweenSeeds)
         {
             TargetStatModel[] optimizationTargets = TargetStats
                 .Where(t => t.HasTarget && t.HasGoal)
@@ -203,6 +208,11 @@ namespace AOLadderer.Blazor.Models
                     {
                         bestState = candidate;
                     }
+
+                    // Yield to the browser between seeds so the JS event loop stays alive
+                    // and the "Page Unresponsive" dialog doesn't fire on long optimizations.
+                    if (yieldBetweenSeeds)
+                        await Task.Yield();
                 }
             }
             finally
