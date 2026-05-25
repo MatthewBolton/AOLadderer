@@ -19,6 +19,7 @@ namespace AOLadderer.Blazor
             Shopping = null;
             ExportToAuno = null;
             HasBuiltLadderProcess = false;
+            Build.InvalidateLadderFinalQLCache();
         }
 
         public async Task InitializeLadderProcess()
@@ -34,6 +35,7 @@ namespace AOLadderer.Blazor
             Ladder = new LadderModel(ladder);
             Shopping = new ShoppingModel(ladder);
             ExportToAuno = new ExportToAunoModel(ladder);
+            Build.SetLadderFinalQLCache(ladder.OrderedFinalImplants);
             HasBuiltLadderProcess = true;
         }
     }

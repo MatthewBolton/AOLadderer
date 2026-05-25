@@ -100,6 +100,16 @@ namespace AOLadderer.Blazor.Models
             new TargetStatModel { Priority = 2, Target = AutofillTarget2, CurrentValue = AutofillTarget2Current, GoalValue = AutofillTarget2Goal },
             new TargetStatModel { Priority = 3, Target = AutofillTarget3, CurrentValue = AutofillTarget3Current, GoalValue = AutofillTarget3Goal }
         };
+        // Populated by AppState after it builds the ladder; cleared on any Build change.
+        // Null means the ladder hasn't been run yet — fall back to base-stat QL.
+        private IReadOnlyDictionary<ImplantSlot, int> _ladderFinalQLBySlot;
+
+        public void SetLadderFinalQLCache(IEnumerable<Implant> finalImplants)
+            => _ladderFinalQLBySlot = finalImplants.ToDictionary(i => i.ImplantSlot, i => i.QL);
+
+        public void InvalidateLadderFinalQLCache()
+            => _ladderFinalQLBySlot = null;
+
         public IReadOnlyList<TargetProjectionModel> TargetProjections
         {
             get
@@ -107,14 +117,11 @@ namespace AOLadderer.Blazor.Models
                 var activeTargets = TargetStats.Where(t => t.HasTarget).ToList();
                 if (activeTargets.Count == 0) return System.Array.Empty<TargetProjectionModel>();
 
-                // Run the ladder once and index final implant QLs by slot so every
-                // target projection uses the post-ladder QL, not the bare base-stat QL.
-                var finalQLBySlot = CreateLadderProcess().OrderedFinalImplants
-                    .ToDictionary(i => i.ImplantSlot, i => i.QL);
-
                 return activeTargets.Select(t =>
                 {
-                    (double directGain, double trickledownGain) = GetImplantContribution(t.Target, finalQLBySlot);
+                    (double directGain, double trickledownGain) = _ladderFinalQLBySlot != null
+                        ? GetImplantContribution(t.Target, _ladderFinalQLBySlot)
+                        : GetBaseStatImplantContribution(t.Target);
                     return new TargetProjectionModel
                     {
                         Priority = t.Priority,
