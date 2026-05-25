@@ -158,8 +158,7 @@
 <div class="card bg-light mb-3">
   <div class="card-body py-3">
     <p class="text-muted mb-3">
-      Pick up to three target stats or skills, enter your current and goal values, then autofill available implant slots using currently selected targets.
-      The projection below stays explicitly implant-driven from your current implant selections and includes both direct cluster bonuses and ability-based trickledown from directly equippable implant QLs.
+      Pick up to three target stats or skills, enter your current and goal values, then autofill or optimize available implant slots. A post-ladder projection of your gains appears on the Ladder tab once you run the ladder.
     </p>
 
     <div class="table-responsive">
@@ -215,59 +214,6 @@
   </div>
 </div>
 
-<h5>Target Projection</h5>
-<hr class="border-secondary" style="margin-top: 0;" />
-
-<div class="card bg-light mb-3">
-  <div class="card-body py-3">
-    @if (Model.TargetProjections.Count == 0)
-    {
-      <p class="text-muted mb-0">Select at least one target stat or skill to see implant-only projection against your current and goal values.</p>
-    }
-    else
-    {
-      <div class="table-responsive">
-        <table class="table table-sm mb-0">
-          <thead>
-            <tr>
-              <th>Priority</th>
-              <th>Target</th>
-              <th class="text-right">Current</th>
-              <th class="text-right">Direct gain</th>
-              <th class="text-right">Trickledown gain</th>
-              <th class="text-right">Total implant gain</th>
-              <th class="text-right">Projected total</th>
-              <th class="text-right">Goal</th>
-              <th class="text-right">Deficit</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (BuildModel.TargetProjectionModel projection in Model.TargetProjections)
-            {
-              <tr>
-                <td>Priority @projection.Priority</td>
-                <td>@projection.Target</td>
-                <td class="text-right">@FormatValue(projection.CurrentValue)</td>
-                <td class="text-right">+@FormatValue(projection.DirectGain)</td>
-                <td class="text-right">+@FormatValue(projection.TrickledownGain)</td>
-                <td class="text-right">+@FormatValue(projection.TotalImplantDrivenGain)</td>
-                <td class="text-right">@FormatValue(projection.ProjectedTotal)</td>
-                <td class="text-right">@FormatValue(projection.GoalValue)</td>
-                <td class="text-right @(projection.DeficitToGoal > 0 ? "text-danger font-weight-bold" : "text-success font-weight-bold")">
-                  @FormatValue(projection.DeficitToGoal)
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <p class="text-muted mb-0 mt-3">
-        Projection uses post-ladder final implant QLs once you have visited the Ladder tab; otherwise falls back to directly-equippable QLs. Does not estimate non-implant sources (buffs, equipment, skills).
-      </p>
-    }
-  </div>
-</div>
 
 <div class="row">
   <div class="col-md-8">

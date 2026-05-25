@@ -23,6 +23,55 @@ else
   <p>
     Average QL = @(appState.Ladder.AverageFinalImplantQL.ToString("N2"))
   </p>
+
+  @if (appState.Build.TargetProjections.Count > 0)
+  {
+    <h5>Target Projection</h5>
+    <hr class="border-secondary" style="margin-top: 0;" />
+
+    <div class="card bg-light mb-3">
+      <div class="card-body py-3">
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Target</th>
+                <th class="text-right">Current</th>
+                <th class="text-right">Direct gain</th>
+                <th class="text-right">Trickledown gain</th>
+                <th class="text-right">Total implant gain</th>
+                <th class="text-right">Projected total</th>
+                <th class="text-right">Goal</th>
+                <th class="text-right">Deficit</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach (var projection in appState.Build.TargetProjections)
+              {
+                <tr>
+                  <td>Priority @projection.Priority</td>
+                  <td>@projection.Target</td>
+                  <td class="text-right">@projection.CurrentValue.ToString("0.##")</td>
+                  <td class="text-right">+@projection.DirectGain.ToString("0.##")</td>
+                  <td class="text-right">+@projection.TrickledownGain.ToString("0.##")</td>
+                  <td class="text-right">+@projection.TotalImplantDrivenGain.ToString("0.##")</td>
+                  <td class="text-right">@projection.ProjectedTotal.ToString("0.##")</td>
+                  <td class="text-right">@projection.GoalValue.ToString("0.##")</td>
+                  <td class="text-right @(projection.DeficitToGoal > 0 ? "text-danger font-weight-bold" : "text-success font-weight-bold")">
+                    @projection.DeficitToGoal.ToString("0.##")
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted mb-0 mt-3">
+          Based on the post-ladder final implant QLs above. Does not include non-implant sources (buffs, equipment, skills).
+        </p>
+      </div>
+    </div>
+  }
 }
 
 <hr class="border-secondary" />
