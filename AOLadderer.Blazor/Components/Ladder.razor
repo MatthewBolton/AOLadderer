@@ -60,11 +60,103 @@
     foreach (var stat in new[] { step.ShinyStat, step.BrightStat, step.FadedStat })
     {
       if (!string.IsNullOrWhiteSpace(stat))
-        parts.Add(stat);
+        parts.Add(GetImplantbobStatAlias(stat));
     }
 
     return string.Join(" ", parts);
   }
+
+  private static readonly Dictionary<string, string> _implantbobStatAliases = new()
+  {
+    // Abilities
+    { "Agility",        "agility"     },
+    { "Intelligence",   "intelligence"},
+    { "Psychic",        "psychic"     },
+    { "Sense",          "sense"       },
+    { "Stamina",        "stamina"     },
+    { "Strength",       "strength"    },
+    // Skills
+    { "1h Blunt",       "1hb"         },
+    { "1h Edged Weapon","1he"         },
+    { "2h Blunt",       "2hb"         },
+    { "2h Edged",       "2he"         },
+    { "Adventuring",    "adv"         },
+    { "Aimed Shot",     "aimedshot"   },
+    { "Assault Rif",    "assaultrif"  },
+    { "Bio.Metamor",    "biometamor"  },
+    { "Body Dev",       "bodydev"     },
+    { "Bow",            "bow"         },
+    { "Bow Spc Att",    "bowspc"      },
+    { "Brawling",       "brawl"       },
+    { "Break & Entry",  "be"          },
+    { "Burst",          "burst"       },
+    { "Chemistry",      "chem"        },
+    { "Comp. Liter",    "compliter"   },
+    { "Concealment",    "conceal"     },
+    { "Dimach",         "dimach"      },
+    { "Dodge-Rng",      "dodgerng"    },
+    { "Duck-Exp",       "duckexp"     },
+    { "Elec. Engi",     "elecengi"    },
+    { "Evade-ClsC",     "evadecls"    },
+    { "Fast Attack",    "fastattack"  },
+    { "First Aid",      "firstaid"    },
+    { "Fling Shot",     "flingshot"   },
+    { "Full Auto",      "fullauto"    },
+    { "Grenade",        "gren"        },
+    { "Heavy Weapons",  "hw"          },
+    { "Martial Arts",   "martialarts" },
+    { "Matt.Metam",     "mattmetam"   },
+    { "Matter Crea",    "mattercrea"  },
+    { "Mech. Engi",     "mechengi"    },
+    { "Melee Ener",     "meleeenergy" },
+    { "Melee. Init",    "meleeinit"   },
+    { "MG / SMG",       "mgsmg"       },
+    { "Mult. Melee",    "multimelee"  },
+    { "Multi Ranged",   "multiranged" },
+    { "Nano Pool",      "nanopool"    },
+    { "Nano Progra",    "nanoprog"    },
+    { "Nano Resist",    "nanoresist"  },
+    { "NanoC. Init",    "nanocinit"   },
+    { "Parry",          "parry"       },
+    { "Perception",     "perception"  },
+    { "Pharma Tech",    "pharmatech"  },
+    { "Physic. Init",   "physicinit"  },
+    { "Piercing",       "piercing"    },
+    { "Pistol",         "pistol"      },
+    { "Psycho Modi",    "psychomodi"  },
+    { "Psychology",     "psychology"  },
+    { "Quantum FT",     "quantumft"   },
+    { "Ranged Ener",    "rangedener"  },
+    { "Ranged. Init",   "rangedinit"  },
+    { "Rifle",          "rifle"       },
+    { "Riposte",        "riposte"     },
+    { "Run Speed",      "runspeed"    },
+    { "Sensory Impr",   "sensoryimpr" },
+    { "Sharp Obj",      "sharpobj"    },
+    { "Shotgun",        "shotgun"     },
+    { "Sneak Atck",     "sneakattack" },
+    { "Time & Space",   "timespace"   },
+    { "Trap Disarm",    "trapdisarm"  },
+    { "Treatment",      "treatment"   },
+    { "Tutoring",       "tutoring"    },
+    { "Vehicle Air",    "vehair"      },
+    { "Vehicle Grnd",   "vehgrnd"     },
+    { "Vehicle Hydr",   "vehhydr"     },
+    { "Weapon Smt",     "weapsmt"     },
+    // Armor Classes
+    { "Chemical AC",    "chemac"      },
+    { "Cold AC",        "coldac"      },
+    { "Disease AC",     "diseaseac"   },
+    { "Energy AC",      "energyac"    },
+    { "Fire AC",        "fireac"      },
+    { "Imp/Proj AC",    "projac"      },
+    { "Melee/Ma AC",    "meleeac"     },
+    { "Radiation AC",   "radac"       },
+  };
+
+  private static string GetImplantbobStatAlias(string stat)
+    => string.IsNullOrWhiteSpace(stat) ? stat
+       : _implantbobStatAliases.TryGetValue(stat, out var alias) ? alias : stat;
 
   private static string GetImplantbobSlotAlias(string slot)
     => slot switch
